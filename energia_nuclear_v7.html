@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Energía Nuclear</title>
+  <meta name="description" content="Energía Nuclear — versión definitiva interactiva: fisión, fusión, línea de tiempo, diagramas holográficos y easter eggs."/>
+  <style>
+    :root{
+      --bg-1:#030616; --bg-2:#071922; --neon:#3df0a8; --muted:#9bbfb6; --glass:rgba(255,255,255,0.03);
+      --card:rgba(8,18,24,0.6); --accent:#14b18a; --maxw:1250px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;color:#e8fff6;background:linear-gradient(180deg,var(--bg-1),var(--bg-2));-webkit-font-smoothing:antialiased}
+    .stage{position:relative;min-height:100vh;overflow:hidden;padding:28px;display:flex;align-items:flex-start;justify-content:center}
+    canvas#bg{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block}
+    .container{width:100%;max-width:var(--maxw);z-index:2;padding-bottom:80px}
+    header{display:flex;align-items:center;gap:18px;margin-bottom:18px}
+    .logo{width:68px;height:68px;border-radius:12px;background:linear-gradient(135deg,var(--neon),#14b18a);display:flex;align-items:center;justify-content:center;font-weight:800;color:#021715;box-shadow:0 10px 36px rgba(61,240,168,0.12);cursor:pointer;user-select:none}
+    /* 3D neon title */
+    .titleWrap{flex:1;position:relative}
+    .title3d{
+      font-size:44px;
+      font-weight:900;
+      line-height:0.95;
+      color:var(--neon);
+      text-shadow:0 2px 8px rgba(61,240,168,0.12), 0 0 30px rgba(61,240,168,0.12);
+      transform-style:preserve-3d;
+      transition:transform .25s ease, text-shadow .25s ease, filter .25s ease;
+      cursor:pointer;
+    }
+    .titleDesc{
+      margin-top:8px;color:var(--muted);font-weight:600;font-size:14px;opacity:0;transform:translateY(6px);transition:opacity .22s, transform .22s;
+      position:absolute;left:0;top:56px;background:rgba(2,8,10,0.7);padding:10px;border-radius:8px;border:1px solid rgba(61,240,168,0.06);backdrop-filter:blur(6px);max-width:640px;
+    }
+    .titleWrap.showDesc .titleDesc{opacity:1;transform:translateY(0)}
+
+    main{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start;margin-top:8px}
+    @media (max-width:980px){main{grid-template-columns:1fr}}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px;box-shadow:0 10px 36px rgba(0,0,0,0.6);backdrop-filter: blur(6px);position:relative;overflow:visible}
+    .hero{padding:28px;border-radius:14px}
+    .glow{position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle at 30% 30%, rgba(61,240,168,0.12), transparent 40%);filter:blur(36px);pointer-events:none;mix-blend-mode:screen}
+
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+    h2{color:#dffcf0;margin:0 0 8px 0;font-size:18px}
+    h3{color:#cdefe2;margin:0 0 6px 0;font-size:15px}
+    p,li{color:#cfeee2;line-height:1.6}
+
+    /* hologram panels */
+    .panel{border-radius:12px;padding:12px;border:1px solid rgba(61,240,168,0.05);background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));box-shadow:0 6px 24px rgba(0,0,0,0.5)}
+
+    /* diagrams */
+    .diagram{display:flex;align-items:center;justify-content:center;padding:8px}
+    svg.diagram-svg{width:100%;height:auto;max-width:540px;display:block}
+
+    /* timeline */
+    .timeline{display:flex;flex-direction:column;gap:12px;padding:8px}
+    .milestone{display:flex;gap:12px;align-items:flex-start}
+    .milestone .dot{width:12px;height:12px;border-radius:50%;background:var(--neon);box-shadow:0 10px 30px rgba(61,240,168,0.12);flex-shrink:0;margin-top:6px;transform:scale(.9);transition:transform .18s}
+    .milestone .content{color:#bfeee0;background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(61,240,168,0.03);transition:box-shadow .18s, transform .18s}
+
+    /* easter flash */
+    .easterFlash{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:0;transition:opacity .25s ease}
+    .easterFlash.show{opacity:1}
+
+    /* right column cards */
+    aside{display:flex;flex-direction:column;gap:14px}
+    .compact-list{list-style:none;padding:0;margin:0;color:var(--muted)}
+    .compact-list li{padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.02)}
+
+    /* footer */
+    footer{margin-top:26px;color:var(--muted);font-size:13px;text-align:center;margin-bottom:40px}
+
+    /* responsive tweaks */
+    @media (max-width:520px){.title3d{font-size:28px}.titleDesc{position:static;opacity:1;transform:none;margin-top:8px}}
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <canvas id="bg"></canvas>
+    <div class="container">
+      <header>
+        <div class="logo" id="logo" title="Haz clic para un secreto">NU</div>
+        <div class="titleWrap" id="titleWrap">
+          <div class="title3d" id="title3d" tabindex="0" role="button" aria-pressed="false">Energía Nuclear</div>
+          <div class="titleDesc" id="titleDesc">El núcleo atómico guarda la llave: energía concentrada, posibilidad liberada. Haz clic en el título para explorar más.</div>
+        </div>
+      </header>
+
+      <main>
+        <section class="card hero" aria-labelledby="intro">
+          <div class="glow" aria-hidden="true"></div>
+          <h2 id="intro">Introducción</h2>
+          <p>La energía nuclear libera energía desde el núcleo atómico. A continuación verás fisión y fusión con diagramas holográficos, una línea del tiempo interactiva, y varios easter eggs ocultos.</p>
+
+          <div class="grid">
+            <div class="panel">
+              <h3>Fisión — Holograma</h3>
+              <div class="diagram" id="fissionPanel">
+                <svg class="diagram-svg" viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama holográfico de fisión" id="fissionSVG">
+                  <defs>
+                    <linearGradient id="lg1" x1="0" x2="1"><stop offset="0" stop-color="#6fffd8"/><stop offset="1" stop-color="#13c38f"/></linearGradient>
+                  </defs>
+                  <g transform="translate(80,130)">
+                    <circle cx="0" cy="0" r="36" fill="none" stroke="url(#lg1)" stroke-width="3" class="glowline" id="u235"/>
+                    <text x="0" y="6" font-size="11" fill="#bfeee0" text-anchor="middle">U-235</text>
+                  </g>
+                  <g transform="translate(200,60)">
+                    <path d="M-40 0 L-6 0" stroke="rgba(180,255,230,0.9)" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="0" cy="0" r="6" fill="rgba(180,255,230,0.95)" id="neutron"/>
+                    <text x="12" y="4" font-size="11" fill="#bfeee0">Neutrón</text>
+                  </g>
+                  <g transform="translate(360,130)">
+                    <circle cx="-36" cy="-6" r="20" fill="none" stroke="rgba(61,228,162,0.9)" stroke-width="2"/>
+                    <circle cx="36" cy="6" r="20" fill="none" stroke="rgba(61,228,162,0.9)" stroke-width="2"/>
+                    <text x="-36" y="40" font-size="11" fill="#bfeee0" text-anchor="middle">Productos</text>
+                  </g>
+                </svg>
+              </div>
+              <p style="margin-top:8px">La fisión divide núcleos pesados (p. ej. U-235) liberando energía y neutrones; la reacción se controla con barras absorbentes.</p>
+            </div>
+
+            <div class="panel">
+              <h3>Fusión — Holograma</h3>
+              <div class="diagram" id="fusionPanel">
+                <svg class="diagram-svg" viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama holográfico de fusión" id="fusionSVG">
+                  <defs>
+                    <radialGradient id="rg1" cx="50%" cy="40%"><stop offset="0" stop-color="#bfffe8"/><stop offset="1" stop-color="#13c38f"/></radialGradient>
+                  </defs>
+                  <g transform="translate(170,120)">
+                    <circle cx="-36" cy="0" r="28" fill="none" stroke="rgba(61,240,168,0.9)" stroke-width="2" id="d1"/>
+                    <circle cx="36" cy="0" r="28" fill="none" stroke="rgba(61,240,168,0.9)" stroke-width="2" id="d2"/>
+                  </g>
+                  <g transform="translate(340,120)">
+                    <circle cx="0" cy="0" r="36" fill="none" stroke="url(#rg1)" stroke-width="3" class="glowline"/>
+                    <text x="0" y="6" font-size="12" fill="#bfeee0" text-anchor="middle">He / Energía</text>
+                  </g>
+                </svg>
+              </div>
+              <p style="margin-top:8px">La fusión combina núcleos ligeros (deuterio/tritio) liberando gran energía; el reto es confinar el plasma.</p>
+            </div>
+          </div>
+
+          <div style="margin-top:18px" class="panel">
+            <h3>Comparación</h3>
+            <table style="width:100%;border-collapse:collapse">
+              <tr><th style="text-align:left;padding:8px;color:#dffcf0">Fisión</th><th style="text-align:left;padding:8px;color:#dffcf0">Fusión</th></tr>
+              <tr><td style="padding:8px">Operativa hoy; residuos de larga vida</td><td style="padding:8px">Promesa futura; residuos menores</td></tr>
+              <tr><td style="padding:8px">Combustible: Uranio/Plutonio</td><td style="padding:8px">Combustible: Deuterio/Tritio</td></tr>
+              <tr><td style="padding:8px">Riesgos: control y liberación</td><td style="padding:8px">Riesgos: materiales y costos</td></tr>
+            </table>
+          </div>
+        </section>
+
+        <aside>
+          <div class="card panel">
+            <h3>Línea de tiempo — hitos</h3>
+            <div class="timeline" id="timeline">
+              <div class="milestone" data-year="1896"><div class="dot"></div><div class="content">1896 — Becquerel: radiactividad.</div></div>
+              <div class="milestone" data-year="1938"><div class="dot"></div><div class="content">1938 — Descubrimiento de la fisión.</div></div>
+              <div class="milestone" data-year="1954"><div class="dot"></div><div class="content">1954 — Obninsk: primera planta.</div></div>
+              <div class="milestone" data-year="1986"><div class="dot"></div><div class="content">1986 — Chernóbil.</div></div>
+              <div class="milestone" data-year="2020s"><div class="dot"></div><div class="content">2020s — ITER y proyectos de fusión.</div></div>
+            </div>
+            <div style="margin-top:10px;color:var(--muted);font-size:13px">Pasa el cursor por los puntos para ver el efecto.</div>
+          </div>
+
+          <div class="card panel" style="margin-top:12px">
+            <h3>Proyectos internacionales</h3>
+            <ul class="compact-list">
+              <li><strong>ITER</strong> — Tokamak experimental en Francia.</li>
+              <li><strong>DEMO</strong> — Siguiente fase para plantas de fusión.</li>
+              <li><strong>Microreactores</strong> — Energía modular.</li>
+            </ul>
+          </div>
+
+          <div class="card panel" style="margin-top:12px">
+            <h3>Usos modernos</h3>
+            <ul class="compact-list">
+              <li>Generación eléctrica.</li>
+              <li>Medicina nuclear.</li>
+              <li>Propulsión y exploración espacial.</li>
+            </ul>
+          </div>
+        </aside>
+      </main>
+
+      <section class="card panel" style="margin-top:20px">
+        <h2>Historia y contexto</h2>
+        <p>Desde los estudios de radiactividad hasta la investigación en fusión, la energía nuclear ha generado debates, avances técnicos y regulaciones que buscan maximizar beneficios y minimizar riesgos.</p>
+      </section>
+
+      <section class="card panel" style="margin-top:14px">
+        <h2>Impacto ambiental y sostenibilidad</h2>
+        <p>La operación no genera CO₂, pero hay retos en minería y residuos. La fusión podría reducir estos problemas si se hace comercial.</p>
+      </section>
+
+      <section class="card panel" style="margin-top:14px">
+        <h2>El futuro</h2>
+        <p>IA, superconductores y nuevos materiales ayudarán a crear reactores más seguros y eficientes. La fusión podría transportar a la humanidad hacia una era de energía abundante.</p>
+      </section>
+
+      <footer>
+        <p>© Página educativa sobre energía nuclear — Creada para fines de aprendizaje.</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Easter visual -->
+  <div class="easterFlash" id="easterFlash"></div>
+
+  <script>
+    // Canvas background + reactive particles
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width = innerWidth;
+    let H = canvas.height = innerHeight;
+    const particles = [];
+    function rand(min,max){ return Math.random()*(max-min)+min; }
+    for(let i=0;i<160;i++){ particles.push({x:rand(0,W), y:rand(0,H), r:rand(0.4,3.4), vx:rand(-0.25,0.25), vy:rand(-0.15,0.15), a:rand(0.03,0.95)}) }
+    window.addEventListener('resize', ()=>{ W = canvas.width = innerWidth; H = canvas.height = innerHeight; });
+
+    // mouse reactive
+    const mouse = {x:W/2,y:H/2,moving:false};
+    window.addEventListener('mousemove', e=>{ mouse.x=e.clientX; mouse.y=e.clientY; mouse.moving=true; });
+    window.addEventListener('mouseleave', ()=>{ mouse.moving=false; });
+
+    let anim=true;
+    function frame(t){
+      if(!anim) return;
+      ctx.clearRect(0,0,W,H);
+      const g = ctx.createRadialGradient(W*0.16,H*0.12,40,W*0.55,H*0.5,Math.max(W,H));
+      g.addColorStop(0,'rgba(61,240,168,0.04)'); g.addColorStop(1,'rgba(2,6,12,0)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+      for(const p of particles){
+        // particles move with slight attraction to mouse when moving
+        if(mouse.moving){
+          const dx = mouse.x - p.x, dy = mouse.y - p.y;
+          p.vx += dx * 0.00008; p.vy += dy * 0.00006;
+        }
+        p.x += p.vx; p.y += p.vy;
+        p.vx *= 0.995; p.vy *= 0.995;
+        p.y += Math.sin((p.x+p.y+t*0.00018))*0.06;
+        if(p.x < -100) p.x = W+100; if(p.x > W+100) p.x = -100;
+        if(p.y < -100) p.y = H+100; if(p.y > H+100) p.y = -100;
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(167,255,217,'+p.a+')';
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    // Title 3D interactions: hover tilt + click to toggle description and subtle 3D rotate
+    const title = document.getElementById('title3d');
+    const titleWrap = document.getElementById('titleWrap');
+    let titleActive = false;
+    title.addEventListener('mousemove', (e)=>{
+      const r = title.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      const dx = (e.clientX - cx)/r.width, dy = (e.clientY - cy)/r.height;
+      title.style.transform = `rotateX(${dy*6}deg) rotateY(${dx*8}deg) translateZ(6px)`;
+      title.style.textShadow = `0 ${6 - dy*6}px ${18+Math.abs(dx*8)}px rgba(61,240,168,0.12)`;
+    });
+    title.addEventListener('mouseleave', ()=>{ if(!titleActive) title.style.transform='none'; title.style.textShadow='0 2px 8px rgba(61,240,168,0.12), 0 0 30px rgba(61,240,168,0.12)'; });
+    function toggleTitle(){ titleActive = !titleActive; document.getElementById('titleDesc').parentElement.classList.toggle('showDesc', titleActive); title.setAttribute('aria-pressed', String(titleActive)); if(titleActive){ title.style.transform='rotateX(6deg) rotateY(-12deg) translateZ(10px) scale(1.02)'; } else { title.style.transform='none'; } }
+    title.addEventListener('click', toggleTitle);
+    title.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggleTitle(); } });
+
+    // Easter egg: click logo -> quote flash
+    const logo = document.getElementById('logo');
+    const flash = document.getElementById('easterFlash');
+    logo.addEventListener('click', ()=>{
+      flash.style.background = 'radial-gradient(circle at 50% 40%, rgba(61,240,168,0.18), rgba(61,240,168,0.02))';
+      flash.classList.add('show'); setTimeout(()=> flash.classList.remove('show'),450);
+      // small toast
+      const t = document.createElement('div');
+      t.textContent = '"El núcleo guarda la promesa de energía contenida."';
+      Object.assign(t.style,{position:'fixed',left:'50%',top:'12%',transform:'translateX(-50%)',background:'rgba(2,8,10,0.92)',padding:'10px 14px',color:'#bfffe0',borderRadius:'8px',border:'1px solid rgba(61,240,168,0.08)',zIndex:9999});
+      document.body.appendChild(t); setTimeout(()=>{ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(()=> t.remove(),420); },3000);
+    });
+
+    // Double click on panels 'fisión' or 'fusión' to expand with micro-info (easter)
+    document.getElementById('fissionPanel').addEventListener('dblclick', ()=>{
+      const info = document.createElement('div');
+      info.innerHTML = '<strong>Fisión — más info:</strong> Control con barras de control, refrigeración y sistemas de contención. Diseño modular y seguridad pasiva son tendencias recientes.';
+      Object.assign(info.style,{background:'rgba(0,0,0,0.6)',padding:'10px',borderRadius:'8px',color:'#dffcf0',marginTop:'8px'});
+      document.getElementById('fissionPanel').appendChild(info);
+      setTimeout(()=> info.remove(),8000);
+    });
+    document.getElementById('fusionPanel').addEventListener('dblclick', ()=>{
+      const info = document.createElement('div');
+      info.innerHTML = '<strong>Fusión — más info:</strong> Tokamaks y stellarators; retos: materiales, manejo de neutrones y economía de escala.';
+      Object.assign(info.style,{background:'rgba(0,0,0,0.6)',padding:'10px',borderRadius:'8px',color:'#dffcf0',marginTop:'8px'});
+      document.getElementById('fusionPanel').appendChild(info);
+      setTimeout(()=> info.remove(),8000);
+    });
+
+    // Timeline interactivity: hover lights
+    document.querySelectorAll('#timeline .milestone').forEach(ms=>{
+      ms.addEventListener('mouseenter', ()=>{
+        ms.querySelector('.dot').style.transform='scale(1.25)';
+        ms.querySelector('.content').style.transform='translateY(-4px)';
+        ms.querySelector('.content').style.boxShadow='0 12px 30px rgba(0,0,0,0.6)';
+      });
+      ms.addEventListener('mouseleave', ()=>{
+        ms.querySelector('.dot').style.transform='scale(.95)';
+        ms.querySelector('.content').style.transform='translateY(0)';
+        ms.querySelector('.content').style.boxShadow='none';
+      });
+    });
+
+    // keyboard secret: press 'b' to reveal binary overlay (hidden easter)
+    const binary = ['01000101 01101110 01100101 01110010 01100111 01101001 01100001','01001110 01110101 01100011 01101100 01100101 01101111'];
+    window.addEventListener('keydown', (e)=>{ if(e.key.toLowerCase()==='b'){ alert(btoa(binary.join('\\n')).replace(/=/g,'')); } });
+
+    // accessibility: respect reduced motion
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      anim=false;
+      particles.forEach(p=>{ p.vx=0; p.vy=0; });
+    }
+  </script>
+</body>
+</html>
